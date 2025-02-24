@@ -1,0 +1,183 @@
+---
+title: "Assignment1"
+format: pdf
+editor: visual
+---
+
+code chunk to hide warnings or any extra message .
+
+```{r}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Assignment 1
+
+This file explains the steps and logic behind the solution provided to each questions given in Assignment 1.
+
+## Task 1 : Manipulation
+
+### 1 : Load the data from excel file
+
+I am loading **readxl** package which is needed to read data from excel file in R.
+
+I have used range attribute to select rows starting from row 9 till row 50
+
+```{r}
+library(readxl)
+ds_a1 <- read_excel("crim_off_cat_2022.xlsx",
+                    col_names = TRUE,na=":",range = cell_rows(9:50))
+```
+
+### 2 What is the size (number of rows and columns ) and structure of dataset ?
+
+I will use **str** function to get this information, this provides with data size and structure as output
+
+The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+#|ndefined echo: false
+
+str(ds_a1, width = 60, strict.width = "wrap")
+```
+
+## Ans:-
+
+Number of rows , columns - 41, 22 respectively.
+
+### 3. Change the column name of first column to "Country"
+
+I am using **colnames** function to rename the column name at index 1 \~ first column name
+
+```{r}
+colnames(ds_a1)[1] = "Country"
+```
+
+### 4. Remove certain columns from the dataset.
+
+I am using **subset** function with the list of columns that needs to be removed from dataset and putting it in a modified data set for further use.
+
+```{r}
+ds_a_modified = subset(ds_a1,
+select=-c(`Child pornography`,`Rape`, `Sexual assault`,`Theft`
+          ,`Theft of a motorized vehicle or parts thereof`
+          ,`Burglary`, `Burglary of private residential premises` ))
+
+```
+
+### 5. Work with the dataset you just created, and write some code to list the countries that contain any missing data.
+
+Here I have used **complete.case** function which gets all complete value \~ no missing values and used **not operator** to get all rows having atleast 1 missing value.
+
+```{r}
+rows_with_na <- ds_a_modified[!complete.cases(ds_a_modified), ]
+rows_with_na$Country
+```
+
+### 6. Remove the countries with missing data (i.e. countries with at least one NA)
+
+I am using **na.exclude** function to exclude all country with any missing data .
+
+```{r}
+ds_a_modified= na.exclude(ds_a_modified)
+```
+
+### 7. Add a column containing the overall record of offences for each country (per hundred thousand inhabitants)
+
+Adding a column named **overall_ofnc_record** using function **rowSums**
+
+```{r}
+ds_a_modified$overall_ofnc_record = rowSums(ds_a_modified[,2:length(ds_a_modified)])
+```
+
+### 8. How many observations and variables are in this new dataset?
+
+I will use **str** function to see the modified dataframe structure
+
+```{r}
+str(ds_a_modified, width = 60, strict.width = "wrap")
+```
+
+**Ans:-** The modified dataframe have 14 rows /Observations and 16 columns /variables
+
+## Task 2 : Analysis
+
+Work with the dataset produced at the end of Task 1.
+
+```{r}
+ds_a2= ds_a_modified
+```
+
+#### 1. Produce a table showing the country names and their record of participation in an organized #criminal group in 2022 sorted by highest to lowest value, and display one decimal digit.
+
+I am loading **dplyr** package to use function **select** to take few columns from the dataframe
+
+and using **knitr::kable** to print table and attribute **d=1** is for decimal point 1.
+
+```{r}
+library(dplyr)
+ds_a2_q1 = select(ds_a2[
+  with(ds_a2, order(`Participation in an organized criminal group`, decreasing = T)),
+],Country,`Participation in an organized criminal group`)
+
+knitr::kable(ds_a2_q1, align = "ccc",d=1)
+```
+
+### 2 Which country has the highest record of participation in an organized criminal group in 2022 #(per hundred thousand inhabitants)?
+
+I am using above dataframe and printing the first row first column as the above is sorted in descending order and 1st column and 1st row will give the country with highest record.
+
+```{r}
+knitr::kable(ds_a2_q1[1,1],align='ccc')
+```
+
+### 3. Create a plot displaying the relationship between robbery and unlawful acts involving controlled drugs or precursors. Make the plot “nice” i.e., show country names, change size of the plot, change axis labels, etc.
+
+I am loading **ggplot2** package for plotting
+
+```{r}
+library(ggplot2)
+#|ndefined echo: false
+p <- ggplot(ds_a2, 
+          aes(y = Robbery,
+              x = `Unlawful acts involving controlled drugs or precursors`                        ,colour = Country)) + 
+  geom_point() +
+  labs(x = "Unlawful Acts"
+       , y = "Robbery"
+       , color = "Country"
+       ,title = "Relation between Robbery & Unlawful Acts") +
+  theme_bw() + theme(text=element_text(size=10))
+
+
+p
+```
+
+## Task 3 Creativity
+
+**I see a correlation in theft and theft of a motorized vehicle both are linearly dependent.**
+
+```{r}
+#|ndefined echo: false
+
+c <- ggplot(ds_a1,aes(x=Theft
+                      ,y=`Theft of a motorized vehicle or parts thereof`
+                      ,size=0.5)) + geom_point() + stat_smooth(method=lm)
+c
+
+```
+
+**Country - Albania and Sweden stands out in terms of Bribery and corruption scores respectively with highest score .**
+
+```{r}
+#|ndefined echo: false
+
+d <- ggplot(ds_a1, aes(x = Corruption, y = Bribery, label = Country)) +
+  geom_point(color = "blue", size = 3) +  # Points for each country
+  geom_text(vjust = -1,size = 2.5) +                 # Add country labels
+  labs(title = "Relationship between Corruption and Bribery",
+       x = "Corruption Score",
+       y = "Bribery Score") +
+  theme_minimal() +
+  theme(text = element_text(size = 10))
+
+d
+```
